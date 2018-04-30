@@ -13,6 +13,14 @@ DWORD   blad;                         	    // reprezentuje typ ewentualnego b³êd
 COMMTIMEOUTS ustawieniaCzasu;
 USHORT tmpCRC;
 
-char PoliczCRC_Znaku(int n, int nrZnaku);
-int czyParzysty(int x, int y);
-int PoliczCRC(char *wsk, int count);
+char nazwaPliku[255];
+
+char blokDanych[128];
+char znak;
+unsigned long rozmiarZnaku = sizeof(znak);
+int licznikZnakow = 1;						//potrzebne przy czytaniu i pisaniu
+bool transmisja = false;
+bool poprawnyPakiet;
+int numerPaczki;
+char dopelnienieDo255;
+char sumaKontrolnaCRC[2]; 					//odebrane sumaKontrolnaCRC
