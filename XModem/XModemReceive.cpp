@@ -19,7 +19,7 @@ int Receive(LPCTSTR selectedPort)
 	DCB      controlSettings;       // Defines the control setting for a serial communications device.
 	COMSTAT	 commDeviceInfo;        // Contains information about a communications device. This structure is filled by the ClearCommError function
 	COMMTIMEOUTS timeParameters;	// Contains the time-out parameters for a communications device. 
-	DWORD    Error;
+	DWORD    error;
 
 	portHandle = CreateFile(selectedPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (portHandle != INVALID_HANDLE_VALUE)
@@ -50,7 +50,7 @@ int Receive(LPCTSTR selectedPort)
 
 		SetCommState(portHandle, &controlSettings);
 		SetCommTimeouts(portHandle, &timeParameters);
-		ClearCommError(portHandle, &Error, &commDeviceInfo);
+		ClearCommError(portHandle, &error, &commDeviceInfo);
 	}
 	else {
 		cout << "Conection failed\n";
@@ -92,7 +92,7 @@ int Receive(LPCTSTR selectedPort)
 	cout << "Receiving the file\n";
 
 	ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
-	int packageNumber = (int)character;
+	int packetNumber = (int)character;
 
 	ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
 	char complementTo255 = character;
@@ -109,39 +109,39 @@ int Receive(LPCTSTR selectedPort)
 	CRCChecksum[0] = character;
 	ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
 	CRCChecksum[1] = character;
-	bool isPackageCorrect;
+	bool isPacketCorrect;
 
-	if ((char)(255 - packageNumber) != complementTo255)
+	if ((char)(255 - packetNumber) != complementTo255)
 	{
-		cout << "Bad package number\n";
+		cout << "Bad packet number\n";
 		WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL);
-		isPackageCorrect = false;
+		isPacketCorrect = false;
 
 	}
 	else
 	{
-		USHORT tmpCRC = PoliczCRC(dataBlock, 128);	// CRC
+		USHORT tmpCRC = calculateCRC(dataBlock, 128);	// CRC
 
-		if (PoliczCRC_Znaku(tmpCRC, 1) != CRCChecksum[0] || PoliczCRC_Znaku(tmpCRC, 2) != CRCChecksum[1])
+		if (calculateCharacterCRC(tmpCRC, 1) != CRCChecksum[0] || calculateCharacterCRC(tmpCRC, 2) != CRCChecksum[1])
 		{
 			cout << "Bad checksum\n";
 			WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL); //NAK
-			isPackageCorrect = false;
+			isPacketCorrect = false;
 		}
 		else
 		{
-			isPackageCorrect = true;
+			isPacketCorrect = true;
 		}
 	}
 
-	if (isPackageCorrect)
+	if (isPacketCorrect)
 	{
 		for (int i = 0; i<128; i++)
 		{
 			if (dataBlock[i] != 26)
 				file << dataBlock[i];
 		}
-		cout << "Package received successfully!\n";
+		cout << "Packet received successfully!\n";
 		WriteFile(portHandle, &ACK, characterCount, &characterSize, NULL);
 	}
 
@@ -152,7 +152,7 @@ int Receive(LPCTSTR selectedPort)
 		cout << "Transmittion in progress / ";
 
 		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
-		packageNumber = (int)character;
+		packetNumber = (int)character;
 
 		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
 		complementTo255 = character;
@@ -168,26 +168,26 @@ int Receive(LPCTSTR selectedPort)
 		CRCChecksum[0] = character;
 		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
 		CRCChecksum[1] = character;
-		isPackageCorrect = true;
+		isPacketCorrect = true;
 
-		if ((char)(255 - packageNumber) != complementTo255)
+		if ((char)(255 - packetNumber) != complementTo255)
 		{
-			cout << "Bad package number\n";
+			cout << "Bad packet number\n";
 			WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL);
-			isPackageCorrect = false;
+			isPacketCorrect = false;
 		}
 		else
 		{
-			USHORT tmpCRC = PoliczCRC(dataBlock, 128);
+			USHORT tmpCRC = calculateCRC(dataBlock, 128);
 
-			if (PoliczCRC_Znaku(tmpCRC, 1) != CRCChecksum[0] || PoliczCRC_Znaku(tmpCRC, 2) != CRCChecksum[1])
+			if (calculateCharacterCRC(tmpCRC, 1) != CRCChecksum[0] || calculateCharacterCRC(tmpCRC, 2) != CRCChecksum[1])
 			{
 				cout << "Bad checksum\n";
 				WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL);
-				isPackageCorrect = false;
+				isPacketCorrect = false;
 			}
 		}
-		if (isPackageCorrect)
+		if (isPacketCorrect)
 		{
 			for (int i = 0; i<128; i++)
 			{
@@ -195,7 +195,7 @@ int Receive(LPCTSTR selectedPort)
 					file << dataBlock[i];
 			}
 
-			cout << "Package received successfully!\n";
+			cout << "Packet received successfully!\n";
 			WriteFile(portHandle, &ACK, characterCount, &characterSize, NULL);
 		}
 	}
@@ -205,7 +205,7 @@ int Receive(LPCTSTR selectedPort)
 	CloseHandle(portHandle);
 	if (character == CAN)
 	{
-		cout << "Error, connection was interrupted\n";
+		cout << "Connection was interrupted\n";
 	}
 	else
 	{

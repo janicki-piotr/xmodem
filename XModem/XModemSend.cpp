@@ -13,183 +13,175 @@ const char CAN = 0x18;
 const char ACK = 0x06;
 const char EOT = 0x04;
 
-HANDLE   uchwytPortu;                      	// identyfikator portu
-LPCTSTR  nazwaPortu;                    	// przechowuje nazwê portu
-DCB      ustawieniaSterowania;              // struktura kontroli portu szeregowego
-COMSTAT zasobyPortu;                        // dodatkowa informacja o zasobach portu
-DWORD   blad;                         	    // reprezentuje typ ewentualnego b³êdu
-COMMTIMEOUTS ustawieniaCzasu;
-USHORT tmpCRC;
-
-char nazwaPliku[255];                   // bufor na nazwe pliku
-
-char znak;                              // bufor na przesylany znak
-int licznikZnakow = 1;
-unsigned long rozmiarZnaku = sizeof(znak);
-int kod;
-
-bool transmisja = false;
-bool czyPoprawnyPakiet;
-int nrPakietu = 1;
-char paczka[128];
-
 int Send(LPCTSTR nazwaPortu)
 {
-	std::ifstream plik;
+	HANDLE   portHandle;
+	DCB      controlSettings;
+	COMSTAT commDeviceInfo;
+	COMMTIMEOUTS timeParameters;
+	DWORD   error;
 
-	//ustawiamy parametry portu i go otwieramy
-	uchwytPortu = CreateFile(nazwaPortu, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (uchwytPortu != INVALID_HANDLE_VALUE)
+	portHandle = CreateFile(nazwaPortu, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (portHandle != INVALID_HANDLE_VALUE)
 	{
-		ustawieniaSterowania.DCBlength = sizeof(ustawieniaSterowania);
-		GetCommState(uchwytPortu, &ustawieniaSterowania);
-		ustawieniaSterowania.BaudRate = CBR_9600; 				// prêdkosæ transmisji
-		ustawieniaSterowania.Parity = NOPARITY;   				// bez bitu parzystoœci
-		ustawieniaSterowania.StopBits = ONESTOPBIT; 			// ustawienie bitu stopu (jeden bit)
-		ustawieniaSterowania.ByteSize = 8;  					// liczba wysy³anych bitów
+		controlSettings.DCBlength = sizeof(controlSettings);
+		GetCommState(portHandle, &controlSettings);
+		controlSettings.BaudRate = CBR_9600; 
+		controlSettings.Parity = NOPARITY;
+		controlSettings.StopBits = ONESTOPBIT; 	
+		controlSettings.ByteSize = 8; 
 
-		ustawieniaSterowania.fParity = TRUE;
-		ustawieniaSterowania.fDtrControl = DTR_CONTROL_DISABLE; //Kontrola linii DTR: DTR_CONTROL_DISABLE (sygna³ nieaktywny)
-		ustawieniaSterowania.fRtsControl = RTS_CONTROL_DISABLE; //Kontrola linii RTR: DTR_CONTROL_DISABLE (sygna³ nieaktywny)
-		ustawieniaSterowania.fOutxCtsFlow = FALSE;
-		ustawieniaSterowania.fOutxDsrFlow = FALSE;
-		ustawieniaSterowania.fDsrSensitivity = FALSE;
-		ustawieniaSterowania.fAbortOnError = FALSE;
-		ustawieniaSterowania.fOutX = FALSE;
-		ustawieniaSterowania.fInX = FALSE;
-		ustawieniaSterowania.fErrorChar = FALSE;
-		ustawieniaSterowania.fNull = FALSE;
+		controlSettings.fParity = TRUE;
+		controlSettings.fDtrControl = DTR_CONTROL_DISABLE;
+		controlSettings.fRtsControl = RTS_CONTROL_DISABLE;
+		controlSettings.fOutxCtsFlow = FALSE;
+		controlSettings.fOutxDsrFlow = FALSE;
+		controlSettings.fDsrSensitivity = FALSE;
+		controlSettings.fAbortOnError = FALSE;
+		controlSettings.fOutX = FALSE;
+		controlSettings.fInX = FALSE;
+		controlSettings.fErrorChar = FALSE;
+		controlSettings.fNull = FALSE;
 
-		ustawieniaCzasu.ReadIntervalTimeout = 10000;
-		ustawieniaCzasu.ReadTotalTimeoutMultiplier = 10000;
-		ustawieniaCzasu.ReadTotalTimeoutConstant = 10000;
-		ustawieniaCzasu.WriteTotalTimeoutMultiplier = 100;
-		ustawieniaCzasu.WriteTotalTimeoutConstant = 100;
+		timeParameters.ReadIntervalTimeout = 10000;
+		timeParameters.ReadTotalTimeoutMultiplier = 10000;
+		timeParameters.ReadTotalTimeoutConstant = 10000;
+		timeParameters.WriteTotalTimeoutMultiplier = 100;
+		timeParameters.WriteTotalTimeoutConstant = 100;
 
-		SetCommState(uchwytPortu, &ustawieniaSterowania);
-		SetCommTimeouts(uchwytPortu, &ustawieniaCzasu);
-		ClearCommError(uchwytPortu, &blad, &zasobyPortu);
+		SetCommState(portHandle, &controlSettings);
+		SetCommTimeouts(portHandle, &timeParameters);
+		ClearCommError(portHandle, &error, &commDeviceInfo);
 	}
-	else {
-		cout << "Nieudane polaczenie (COM1, 9600kb/s, 8-bitowe dane, jeden bit stopu)\n";
+	else 
+	{
+		cout << "Conection failed\n";
 	}
 
-	cout << "Nazwa pliku do WYSLANIA: ";
-	cin >> nazwaPliku;
+	cout << "File name: ";
+	char fileName[255];
+	cin >> fileName;
 
-	cout << "\nOczekiwanie na rozpoczecie transmisji...\n";
-	for (int i = 0; i<6; i++)
+	cout << "\nWaiting for transmittion start\n";
+
+	char character;
+	unsigned long characterSize = sizeof(character);
+	int characterCount = 1;
+	int kod;
+	bool isTransmission = false;
+	for (int i = 0; i < 6; i++)
 	{
 
-		ReadFile(uchwytPortu, &znak, licznikZnakow, &rozmiarZnaku, NULL);
-		cout << znak << endl;
-		if (znak == 'C')
+		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+		cout << character << endl;
+		if (character == 'C')
 		{
-			cout << " | otrzymano znak\n......" << znak << endl;;
 			kod = 1;
-			transmisja = true;
+			isTransmission = true;
 			break;
 		}
-		else if (znak == NAK)
+		else if (character == NAK)
 		{
-			cout << " | otrzymano NAK\n";
 			kod = 2;
-			transmisja = true;
+			isTransmission = true;
 			break;
-
 		}
 	}
 
 
-	if (!transmisja) exit(1);
+	if (!isTransmission)
+	{
+		system("PAUSE");
+		return(0);
+	}
 
-	plik.open(nazwaPliku, ios::binary);
+	std::ifstream plik;
+	plik.open(fileName, ios::binary);
+	char packet[128];
 	while (!plik.eof())
 	{
-		//tablica do czyszczenia
-		for (int i = 0; i<128; i++)
-			paczka[i] = (char)26;
-
+		for (int i = 0; i < 128; i++)
+		{
+			packet[i] = (char)26;
+		}
 		int w = 0;
-
 
 		while (w<128 && !plik.eof())
 		{
-			paczka[w] = plik.get();
-			if (plik.eof()) paczka[w] = (char)26;
+			packet[w] = plik.get();
+			if (plik.eof()) packet[w] = (char)26;
 			w++;
 		}
-		czyPoprawnyPakiet = false;
+		bool isPacketCorrect = false;
 
-		while (!czyPoprawnyPakiet)
+		int packetNumber = 1;
+		while (!isPacketCorrect)
 		{
-			cout << "Trwa wysylanie pakietu. Prosze czekac...\n";
-			WriteFile(uchwytPortu, &SOH, licznikZnakow, &rozmiarZnaku, NULL);		// wysy³anie SOH
-			znak = (char)nrPakietu;
-			WriteFile(uchwytPortu, &znak, licznikZnakow, &rozmiarZnaku, NULL);		// wys³anie numeru paczki
-			znak = (char)255 - nrPakietu;
-			WriteFile(uchwytPortu, &znak, licznikZnakow, &rozmiarZnaku, NULL); 		// wys³anie dope³nienia
+			cout << "Sending the packet\n";
+			WriteFile(portHandle, &SOH, characterCount, &characterSize, NULL);		// send SOH
+			character = (char)packetNumber;
+			WriteFile(portHandle, &character, characterCount, &characterSize, NULL);		// send packet number
+			character = (char)255 - packetNumber;
+			WriteFile(portHandle, &character, characterCount, &characterSize, NULL); 		// complement
 
 
 			for (int i = 0; i<128; i++)
-				WriteFile(uchwytPortu, &paczka[i], licznikZnakow, &rozmiarZnaku, NULL);
-			if (kod == 2) //suma kontrolna
+				WriteFile(portHandle, &packet[i], characterCount, &characterSize, NULL);
+			if (kod == 2)
 			{
-				char suma_kontrolna = (char)26;
+				char checksum = (char)26;
 				for (int i = 0; i<128; i++)
-					suma_kontrolna += paczka[i] % 256;
-				WriteFile(uchwytPortu, &suma_kontrolna, licznikZnakow, &rozmiarZnaku, NULL);
-				cout << " Suma kontrolna = " << suma_kontrolna << endl;
+					checksum += packet[i] % 256;
+				WriteFile(portHandle, &checksum, characterCount, &characterSize, NULL);
+				cout << " Checksum = " << checksum << endl;
 			}
-			else if (kod == 1) //obliczanie CRC i transfer
+			else if (kod == 1)
 			{
-				tmpCRC = PoliczCRC(paczka, 128);
-				znak = PoliczCRC_Znaku(tmpCRC, 1);
-				WriteFile(uchwytPortu, &znak, licznikZnakow, &rozmiarZnaku, NULL);
-				znak = PoliczCRC_Znaku(tmpCRC, 2);
-				WriteFile(uchwytPortu, &znak, licznikZnakow, &rozmiarZnaku, NULL);
+				USHORT tmpCRC = calculateCRC(packet, 128);
+				character = calculateCharacterCRC(tmpCRC, 1);
+				WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
+				character = calculateCharacterCRC(tmpCRC, 2);
+				WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
 			}
 
 
 			while (1)
 			{
-				znak = ' ';
-				ReadFile(uchwytPortu, &znak, licznikZnakow, &rozmiarZnaku, NULL);
+				character = ' ';
+				ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
 
-				if (znak == ACK)
+				if (character == ACK)
 				{
-					czyPoprawnyPakiet = true;
-					cout << "Przeslano poprawnie pakiet danych!";
+					isPacketCorrect = true;
+					cout << "Successfully sent packet\n";
 					break;
 				}
-				if (znak == NAK)
+				if (character == NAK)
 				{
-					cout << "ERROR - otrzymano NAK!\n";
+					cout << "Error, got NAK\n";
 					break;
 				}
-				if (znak == CAN)
+				if (character == CAN)
 				{
-					cout << "ERROR - polaczenie zostalo przerwane!\n";
+					cout << "Transmittion was interrupted\n";
 					return 1;
 				}
 			}
 		}
-		//zwiekszamy numer pakietu
-		if (nrPakietu == 255) nrPakietu = 1;
-		else nrPakietu++;
+		if (packetNumber == 255) packetNumber = 1;
+		else packetNumber++;
 
 	}
 	plik.close();
 
 	while (1)
 	{
-		znak = EOT;
-		WriteFile(uchwytPortu, &znak, licznikZnakow, &rozmiarZnaku, NULL);
-		ReadFile(uchwytPortu, &znak, licznikZnakow, &rozmiarZnaku, NULL);
-		if (znak == ACK) break;
+		character = EOT;
+		WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
+		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+		if (character == ACK) break;
 	}
 
-	CloseHandle(uchwytPortu);
-	cout << "Hurra! Udalo sie wyslac plik!";
-
+	CloseHandle(portHandle);
+	cout << "File sent successfully\n";
 }
