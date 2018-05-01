@@ -2,14 +2,25 @@
 #include <windows.h>
 #include "iostream"
 #include "string"
-#include "Stale.h"
 #include "CRCFunctions.h"
 #include "XModemReceive.h"
 
 using namespace std;
 
+const char SOH = 0x01;
+const char NAK = 0x15;
+const char CAN = 0x18;
+const char ACK = 0x06;
+const char EOT = 0x04;
+
 int Receive(LPCTSTR selectedPort)
 {
+	HANDLE   portHandle;            // Handle for a port
+	DCB      controlSettings;       // Defines the control setting for a serial communications device.
+	COMSTAT	 commDeviceInfo;        // Contains information about a communications device. This structure is filled by the ClearCommError function
+	COMMTIMEOUTS timeParameters;	// Contains the time-out parameters for a communications device. 
+	DWORD    Error;
+
 	portHandle = CreateFile(selectedPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (portHandle != INVALID_HANDLE_VALUE)
 	{
@@ -109,7 +120,7 @@ int Receive(LPCTSTR selectedPort)
 	}
 	else
 	{
-		tmpCRC = PoliczCRC(dataBlock, 128);	// CRC
+		USHORT tmpCRC = PoliczCRC(dataBlock, 128);	// CRC
 
 		if (PoliczCRC_Znaku(tmpCRC, 1) != CRCChecksum[0] || PoliczCRC_Znaku(tmpCRC, 2) != CRCChecksum[1])
 		{
@@ -167,7 +178,7 @@ int Receive(LPCTSTR selectedPort)
 		}
 		else
 		{
-			tmpCRC = PoliczCRC(dataBlock, 128);
+			USHORT tmpCRC = PoliczCRC(dataBlock, 128);
 
 			if (PoliczCRC_Znaku(tmpCRC, 1) != CRCChecksum[0] || PoliczCRC_Znaku(tmpCRC, 2) != CRCChecksum[1])
 			{
