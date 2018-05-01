@@ -1,4 +1,4 @@
 #pragma once
 
 
-void Receive(LPCTSTR);
+int Receive(LPCTSTR);
