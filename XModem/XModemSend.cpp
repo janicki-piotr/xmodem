@@ -16,7 +16,7 @@ const char C = 0x43;
 
 int Send(LPCTSTR selectedPort)
 {
-	HANDLE portHandle = HandleConfig(selectedPort);
+	HANDLE portHandle = HandleConfig(selectedPort); //Handle configuration
 
 	cout << "File name: ";
 	char fileName[255];

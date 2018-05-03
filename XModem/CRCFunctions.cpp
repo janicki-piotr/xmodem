@@ -54,20 +54,15 @@ HANDLE HandleConfig(LPCTSTR selectedPort)
 int calculateCRC(char *wsk, int count)
 {
 	int ChecksumCRC = 0;
-
 	while (--count >= 0) 
 	{
-		ChecksumCRC = ChecksumCRC ^ (int)*wsk++ << 8; 								 // weŸ znak i dopisz osiem zer
+		ChecksumCRC = ChecksumCRC ^ (int)*wsk++ << 8;
 		for (int i = 0; i < 8; ++i)
 		{
 			if (ChecksumCRC & 0x8000)
-			{
-				ChecksumCRC = ChecksumCRC << 1 ^ 0x1021;       // jeœli lewy bit == 1 wykonuj XOR generatorm 1021
-			}
+				{ ChecksumCRC = ChecksumCRC << 1 ^ 0x1021; }
 			else
-			{
-				ChecksumCRC = ChecksumCRC << 1; 									 // jeœli nie to XOR przez 0000, czyli przez to samo
-			}
+				{ ChecksumCRC = ChecksumCRC << 1; }
 		}
 	}
 	return (ChecksumCRC & 0xFFFF);
@@ -78,43 +73,39 @@ int checkIfEven(int x, int y)
 	if (y == 0) { return 1; }
 	if (y == 1) { return x; }
 
-	int wynik = x;
+	int result = x;
 
 	for (int i = 2; i <= y; i++)
-	{
-		wynik = wynik * x;
-	}
+		{ result = result * x; }
 
-	return wynik;
+	return result;
 }
 
-char calculateCharacterCRC(int n, int nrZnaku) //przeliczanie CRC na postaæ binarn¹
+char calculateCharacterCRC(int n, int characterNumber)
 {
 	int x, binary[16];
 
-	for (int i = 0; i < 16; i++)
-	{
-		binary[i] = 0;
-	}
+	for(int i = 0; i < 16; i++)
+		{ binary[i] = 0; }
 
-	for (int i = 0; i < 16; i++)
+	for(int i = 0; i < 16; i++)
 	{
 		x = n % 2;
-		if (x == 1) n = (n - 1) / 2;
-		if (x == 0) n = n / 2;
+		if(x == 1) { n = (n - 1) / 2; }
+		if(x == 0) { n = n / 2; }
+
 		binary[15 - i] = x;
 	}
 
-	//obliczamy poszczegolne znaki sumaKontrolnaCRC (1-szy lub 2-gi)
-	x = 0;
+	int result = 0;
 	int k;
 
-	if (nrZnaku == 1) { k = 7; }
-	if (nrZnaku == 2) { k = 15; }
+	if (characterNumber == 1) { k = 7; }
+	if (characterNumber == 2) { k = 15; }
 
 	for (int i = 0; i < 8; i++)
 	{
-		x = x + checkIfEven(2, i) * binary[k - i];
+		result += checkIfEven(2, i) * binary[k - i];
 	}
-	return (char)x;//zwraca 1 lub 2 znak (bo 2 znaki to 2 bajty, czyli 16 bitów)
+	return (char)result;
 }
