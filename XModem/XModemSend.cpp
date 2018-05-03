@@ -70,11 +70,11 @@ int Send(LPCTSTR selectedPort)
 		while (!isPacketCorrect)
 		{
 			cout << "Sending the packet" << endl;
-			WriteFile(portHandle, &SOH, characterCount, &characterSize, NULL);		// wysy³anie SOH
+			WriteFile(portHandle, &SOH, characterCount, &characterSize, NULL);
 			character = (char)packetNumber;
-			WriteFile(portHandle, &character, characterCount, &characterSize, NULL);		// wys³anie numeru paczki
+			WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
 			character = (char)255 - packetNumber;
-			WriteFile(portHandle, &character, characterCount, &characterSize, NULL); 		// wys³anie dope³nienia
+			WriteFile(portHandle, &character, characterCount, &characterSize, NULL); 
 
 
 			for (int i = 0; i < 128; i++)
