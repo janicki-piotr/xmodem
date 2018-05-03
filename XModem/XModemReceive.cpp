@@ -23,8 +23,7 @@ int Receive(LPCTSTR selectedPort)
 	cin >> fileName;
 	cout << endl;
 
-	int characterCount = 1;
-	char character;
+	int characterCount = 1; char character;
 	unsigned long characterSize = sizeof(character);
 
 	bool isTransmission = false;
@@ -32,7 +31,6 @@ int Receive(LPCTSTR selectedPort)
 	{
 		character = C;
 		WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
-		//czeka na SOH
 		cout << "Waiting for SOH\n";
 		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
 		if (character == SOH)
@@ -80,7 +78,7 @@ int Receive(LPCTSTR selectedPort)
 	}
 	else
 	{
-		USHORT tmpCRC = calculateCRC(dataBlock, 128);	// CRC
+		USHORT tmpCRC = calculateCRC(dataBlock, 128);
 
 		if (calculateCharacterCRC(tmpCRC, 1) != CRCChecksum[0] || calculateCharacterCRC(tmpCRC, 2) != CRCChecksum[1])
 		{
