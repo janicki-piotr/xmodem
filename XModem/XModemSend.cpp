@@ -14,59 +14,9 @@ const char ACK = 0x06;
 const char EOT = 0x04;
 const char C = 0x43;
 
-
-
-
-
-
-
-
-
-
-
 int Send(LPCTSTR selectedPort)
 {
-	HANDLE portHandle = CreateFile(selectedPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (portHandle != INVALID_HANDLE_VALUE)
-	{
-		DCB controlSettings;
-		controlSettings.DCBlength = sizeof(controlSettings);
-		GetCommState(portHandle, &controlSettings);
-		controlSettings.BaudRate = CBR_9600;
-		controlSettings.Parity = NOPARITY;
-		controlSettings.StopBits = ONESTOPBIT;
-		controlSettings.ByteSize = 8;
-
-		controlSettings.fParity = TRUE;
-		controlSettings.fDtrControl = DTR_CONTROL_DISABLE;
-		controlSettings.fRtsControl = RTS_CONTROL_DISABLE;
-		controlSettings.fOutxCtsFlow = FALSE;
-		controlSettings.fOutxDsrFlow = FALSE;
-		controlSettings.fDsrSensitivity = FALSE;
-		controlSettings.fAbortOnError = FALSE;
-		controlSettings.fOutX = FALSE;
-		controlSettings.fInX = FALSE;
-		controlSettings.fErrorChar = FALSE;
-		controlSettings.fNull = FALSE;
-
-		COMMTIMEOUTS timeParameters;
-		timeParameters.ReadIntervalTimeout = 10000;
-		timeParameters.ReadTotalTimeoutMultiplier = 10000;
-		timeParameters.ReadTotalTimeoutConstant = 10000;
-		timeParameters.WriteTotalTimeoutMultiplier = 100;
-		timeParameters.WriteTotalTimeoutConstant = 100;
-
-		COMSTAT commDeviceInfo; DWORD error;
-		SetCommState(portHandle, &controlSettings);
-		SetCommTimeouts(portHandle, &timeParameters);
-		ClearCommError(portHandle, &error, &commDeviceInfo);
-	}
-	else 
-	{
-		cout << "Conection failed" << endl;
-		system("PAUSE");
-		return (0);
-	}
+	HANDLE portHandle = HandleConfig(selectedPort);
 
 	cout << "File name: ";
 	char fileName[255];
@@ -79,7 +29,6 @@ int Send(LPCTSTR selectedPort)
 	bool isTransmittion = false;
 	for (int i = 0; i < 6; i++)
 	{
-
 		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
 		if (character == 'C')
 		{
@@ -132,16 +81,14 @@ int Send(LPCTSTR selectedPort)
 			{
 				WriteFile(portHandle, &packet[i], characterCount, &characterSize, NULL);
 			}
-			if (kod == 2) //suma kontrolna
+			if (kod == 2) //checksum
 			{
 				char checksum = 0;
 				for (int i = 0; i < 128; i++)
-				{
-					checksum += packet[i] % 256;
-				}
+					{ checksum += packet[i] % 256; }
 				WriteFile(portHandle, &checksum, characterCount, &characterSize, NULL);
 			}
-			else if (kod == 1) //obliczanie CRC i transfer
+			else if (kod == 1) //checksum CRC
 			{
 				USHORT tmpCRC = calculateCRC(packet, 128);
 				character = calculateCharacterCRC(tmpCRC, 1);
@@ -170,7 +117,8 @@ int Send(LPCTSTR selectedPort)
 				if (character == CAN)
 				{
 					cout << "Transmition failed" << endl;
-					return 1;
+					system("PAUSE");
+					return (0);
 				}
 			}
 		}

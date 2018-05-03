@@ -1,7 +1,54 @@
 #include "stdafx.h"
+#include <iostream>
 #include "CRCFunctions.h"
 
 using namespace std;
+
+HANDLE HandleConfig(LPCTSTR selectedPort)
+{
+	HANDLE portHandle = CreateFile(selectedPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (portHandle != INVALID_HANDLE_VALUE)
+	{
+		DCB controlSettings;
+		controlSettings.DCBlength = sizeof(controlSettings);
+		GetCommState(portHandle, &controlSettings);
+		controlSettings.BaudRate = CBR_9600;
+		controlSettings.Parity = NOPARITY;
+		controlSettings.StopBits = ONESTOPBIT;
+		controlSettings.ByteSize = 8;
+
+		controlSettings.fParity = TRUE;
+		controlSettings.fDtrControl = DTR_CONTROL_DISABLE;
+		controlSettings.fRtsControl = RTS_CONTROL_DISABLE;
+		controlSettings.fOutxCtsFlow = FALSE;
+		controlSettings.fOutxDsrFlow = FALSE;
+		controlSettings.fDsrSensitivity = FALSE;
+		controlSettings.fAbortOnError = FALSE;
+		controlSettings.fOutX = FALSE;
+		controlSettings.fInX = FALSE;
+		controlSettings.fErrorChar = FALSE;
+		controlSettings.fNull = FALSE;
+
+		COMMTIMEOUTS timeParameters;
+		timeParameters.ReadIntervalTimeout = 10000;
+		timeParameters.ReadTotalTimeoutMultiplier = 10000;
+		timeParameters.ReadTotalTimeoutConstant = 10000;
+		timeParameters.WriteTotalTimeoutMultiplier = 100;
+		timeParameters.WriteTotalTimeoutConstant = 100;
+
+		COMSTAT commDeviceInfo; DWORD error;
+		SetCommState(portHandle, &controlSettings);
+		SetCommTimeouts(portHandle, &timeParameters);
+		ClearCommError(portHandle, &error, &commDeviceInfo);
+		return (portHandle);
+	}
+	else
+	{
+		cout << "Conection failed\n";
+		system("PAUSE");
+		exit (0);
+	}
+}
 
 
 int calculateCRC(char *wsk, int count)

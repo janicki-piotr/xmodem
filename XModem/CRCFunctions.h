@@ -6,3 +6,4 @@
 int calculateCRC(char*, int);
 int checkIfEven(int, int);
 char calculateCharacterCRC(int, int);
+HANDLE HandleConfig(LPCTSTR);

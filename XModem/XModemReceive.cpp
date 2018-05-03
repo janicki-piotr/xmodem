@@ -16,48 +16,7 @@ const char C = 0x43;
 
 int Receive(LPCTSTR selectedPort)
 {
-	HANDLE   portHandle;            // Handle for a port
-	DCB      controlSettings;       // Defines the control setting for a serial communications device.
-	COMSTAT	 commDeviceInfo;        // Contains information about a communications device. This structure is filled by the ClearCommError function
-	COMMTIMEOUTS timeParameters;	// Contains the time-out parameters for a communications device. 
-	DWORD    error;
-
-	portHandle = CreateFile(selectedPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (portHandle != INVALID_HANDLE_VALUE)
-	{
-		controlSettings.DCBlength = sizeof(controlSettings);
-		GetCommState(portHandle, &controlSettings);
-		controlSettings.BaudRate = CBR_9600; 				
-		controlSettings.Parity = NOPARITY;   			
-		controlSettings.StopBits = ONESTOPBIT; 			
-		controlSettings.ByteSize = 8;  					
-		controlSettings.fParity = TRUE;
-		controlSettings.fDtrControl = DTR_CONTROL_DISABLE;
-		controlSettings.fRtsControl = RTS_CONTROL_DISABLE;
-		controlSettings.fOutxCtsFlow = FALSE;
-		controlSettings.fOutxDsrFlow = FALSE;
-		controlSettings.fDsrSensitivity = FALSE;
-		controlSettings.fAbortOnError = FALSE;
-		controlSettings.fOutX = FALSE;
-		controlSettings.fInX = FALSE;
-		controlSettings.fErrorChar = FALSE;
-		controlSettings.fNull = FALSE;
-
-		timeParameters.ReadIntervalTimeout = 10000;
-		timeParameters.ReadTotalTimeoutMultiplier = 10000;
-		timeParameters.ReadTotalTimeoutConstant = 10000;
-		timeParameters.WriteTotalTimeoutMultiplier = 100;
-		timeParameters.WriteTotalTimeoutConstant = 100;
-
-		SetCommState(portHandle, &controlSettings);
-		SetCommTimeouts(portHandle, &timeParameters);
-		ClearCommError(portHandle, &error, &commDeviceInfo);
-	}
-	else {
-		cout << "Conection failed\n";
-		system("PAUSE");
-		return 0;
-	}
+	HANDLE portHandle = HandleConfig(selectedPort);
 
 	char fileName[255];
 	cout << "File name: ";
