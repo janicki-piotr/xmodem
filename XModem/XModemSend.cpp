@@ -69,7 +69,7 @@ int Send(LPCTSTR selectedPort)
 		while (i < 128 && !file.eof())
 		{
 			packet[i] = file.get();
-			if ((file.eof()))
+			if (file.eof())
 			{
 				packet[i] = (char)26;
 			}
@@ -134,7 +134,6 @@ int Send(LPCTSTR selectedPort)
 		}
 		if (packetNumber < 255) { packetNumber++; }
 		else { packetNumber = 1; } // next packet inc., increasing the number
-
 	}
 	file.close();
 
@@ -150,5 +149,4 @@ int Send(LPCTSTR selectedPort)
 	cout << endl << "Transmission completed" << endl;
 	system("PAUSE");
 	return (0);
-
 }
