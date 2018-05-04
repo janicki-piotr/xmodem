@@ -14,8 +14,13 @@ const char ACK = 0x06;
 const char EOT = 0x04;
 const char C = 0x43;
 
+
+
 int Receive(LPCTSTR selectedPort)
 {
+	int characterCount = 1; char character;
+	unsigned long characterSize = sizeof(char);
+
 	HANDLE portHandle = HandleConfig(selectedPort);
 
 	char fileName[255];
@@ -23,16 +28,13 @@ int Receive(LPCTSTR selectedPort)
 	cin >> fileName;
 	cout << endl;
 
-	int characterCount = 1; char character;
-	unsigned long characterSize = sizeof(character);
-
 	bool isTransmission = false;
 	for (int i = 0; i < 6; i++)
 	{
 		character = C;
-		WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
+		WriteFile(portHandle, &character, characterCount, &characterSize, NULL);// Sending C
 		cout << "Waiting for SOH\n";
-		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);// Waiting for SOH
 		if (character == SOH)
 		{
 			isTransmission = true;
@@ -45,34 +47,35 @@ int Receive(LPCTSTR selectedPort)
 		system("PAUSE");
 		return(0);
 	}
+
 	std::ofstream file;
 	file.open(fileName, ios::binary);
 	cout << "Receiving the file\n";
 
-	ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+	ReadFile(portHandle, &character, characterCount, &characterSize, NULL); // Get packet number
 	int packetNumber = (int)character;
 
-	ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+	ReadFile(portHandle, &character, characterCount, &characterSize, NULL); // Get complement 255 - packet
 	char complementTo255 = character;
 
 	char dataBlock[128];
 	for (int i = 0; i<128; i++)
 	{
-		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+		ReadFile(portHandle, &character, characterCount, &characterSize, NULL); // Get data
 		dataBlock[i] = character;
 	}
 
 	char CRCChecksum[2];
-	ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+	ReadFile(portHandle, &character, characterCount, &characterSize, NULL); // Get CRC
 	CRCChecksum[0] = character;
-	ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+	ReadFile(portHandle, &character, characterCount, &characterSize, NULL); // Get CRC
 	CRCChecksum[1] = character;
 	bool isPacketCorrect;
 
-	if ((char)(255 - packetNumber) != complementTo255)
+	if ((char)(255 - packetNumber) != complementTo255) // check checksum
 	{
 		cout << "Bad packet number\n";
-		WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL);
+		WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL);//if wrong, send NAK
 		isPacketCorrect = false;
 
 	}
@@ -80,15 +83,15 @@ int Receive(LPCTSTR selectedPort)
 	{
 		USHORT tmpCRC = calculateCRC(dataBlock, 128);
 
-		if (calculateCharacterCRC(tmpCRC, 1) != CRCChecksum[0] || calculateCharacterCRC(tmpCRC, 2) != CRCChecksum[1])
+		if (calculateCharacterCRC(tmpCRC, 1) != CRCChecksum[0] || calculateCharacterCRC(tmpCRC, 2) != CRCChecksum[1]) // check CRC
 		{
 			cout << "Bad checksum\n";
-			WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL); //NAK
+			WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL);//if wrong, send NAK
 			isPacketCorrect = false;
 		}
 		else
 		{
-			isPacketCorrect = true;
+			isPacketCorrect = true; // if everything is ok
 		}
 	}
 
@@ -157,7 +160,7 @@ int Receive(LPCTSTR selectedPort)
 			WriteFile(portHandle, &ACK, characterCount, &characterSize, NULL);
 		}
 	}
-	WriteFile(portHandle, &ACK, characterCount, &characterSize, NULL);
+	WriteFile(portHandle, &ACK, characterCount, &characterSize, NULL); // accept transmission end
 
 	file.close();
 	CloseHandle(portHandle);
