@@ -14,6 +14,8 @@ const char ACK = 0x06;
 const char EOT = 0x04;
 const char C = 0x43;
 
+int characterCount = 1; unsigned long characterSize = sizeof(char);
+
 int Send(LPCTSTR selectedPort)
 {
 	HANDLE portHandle = HandleConfig(selectedPort); //Handle configuration
@@ -24,27 +26,32 @@ int Send(LPCTSTR selectedPort)
 	cout << endl;
 
 	cout << "Waiting for transmittion." << endl;
-	char character; int characterCount = 1; unsigned long characterSize = sizeof(character);
-	int kod;
+	char character;
+	bool variant;
 	bool isTransmittion = false;
 	for (int i = 0; i < 6; i++)
 	{
-		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
-		if (character == 'C')
+		ReadFile(portHandle, &character, characterCount, &characterSize, NULL); //Waiting for transmittion start
+		if (character == 'C')//Got C character, CRC variant
 		{
-			kod = 1;
+			variant = true;
 			isTransmittion = true;
 			break;
 		}
-		else if (character == NAK)
+		else if (character == NAK)//Got NAK, checksum variant
 		{
-			kod = 2;
+			variant = false;
 			isTransmittion = true;
 			break;
 		}
 	}
 
-	if (!isTransmittion) return(0);
+	if (!isTransmittion)
+	{
+		cout << "Transmition failed" << endl;
+		system("PAUSE");
+		return (0);
+	}
 
 	ifstream file;
 	file.open(fileName, ios::binary);
@@ -57,64 +64,67 @@ int Send(LPCTSTR selectedPort)
 		{
 			packet[i] = (char)26;
 		}
-		int w = 0;
 
-		while (w < 128 && !file.eof())
+		int i = 0;
+		while (i < 128 && !file.eof())
 		{
-			packet[w] = file.get();
-			if (file.eof()) packet[w] = (char)26;
-			w++;
+			packet[i] = file.get();
+			if ((file.eof()))
+			{
+				packet[i] = (char)26;
+			}
+			i++;
 		}
 		bool isPacketCorrect = false;
 
 		while (!isPacketCorrect)
 		{
 			cout << "Sending the packet" << endl;
-			WriteFile(portHandle, &SOH, characterCount, &characterSize, NULL);
+			WriteFile(portHandle, &SOH, characterCount, &characterSize, NULL);//Sending SOH
 			character = (char)packetNumber;
-			WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
+			WriteFile(portHandle, &character, characterCount, &characterSize, NULL);//Sending packet number
 			character = (char)255 - packetNumber;
-			WriteFile(portHandle, &character, characterCount, &characterSize, NULL); 
+			WriteFile(portHandle, &character, characterCount, &characterSize, NULL);//Sending 255 - packet number
 
 
 			for (int i = 0; i < 128; i++)
 			{
 				WriteFile(portHandle, &packet[i], characterCount, &characterSize, NULL);
 			}
-			if (kod == 2) //checksum
+			if (!variant) //checksum
 			{
 				char checksum = 0;
 				for (int i = 0; i < 128; i++)
 					{ checksum += packet[i] % 256; }
 				WriteFile(portHandle, &checksum, characterCount, &characterSize, NULL);
 			}
-			else if (kod == 1) //checksum CRC
+			else if (variant) //checksum CRC
 			{
-				USHORT tmpCRC = calculateCRC(packet, 128);
-				character = calculateCharacterCRC(tmpCRC, 1);
+				int CRC = calculateCRC(packet, 128);
+				character = calculateCharacterCRC(CRC, 1);
 				WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
-				character = calculateCharacterCRC(tmpCRC, 2);
+				character = calculateCharacterCRC(CRC, 2);
 				WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
 			}
 
 			while (1)
 			{
 				character = ' ';
-				ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
+				ReadFile(portHandle, &character, characterCount, &characterSize, NULL);//Waiting for NAK, CAN or ACK
 
-				if (character == ACK)
+				if (character == ACK) //Everything ok
 				{
 					isPacketCorrect = true;
 					cout << "Packet transmitted successfully" << endl;
 					break;
 				}
-				if (character == NAK)
+				if (character == NAK) // Error with checksum
 				{
 					isPacketCorrect = true;
 					cout << "Checksum error" << endl;
 					break;
 				}
-				if (character == CAN)
+				if (character == CAN) // Sth went wrong
 				{
 					cout << "Transmition failed" << endl;
 					system("PAUSE");
@@ -122,13 +132,13 @@ int Send(LPCTSTR selectedPort)
 				}
 			}
 		}
-		if (packetNumber == 255) { packetNumber = 1; }
-		else { packetNumber++; }
+		if (packetNumber < 255) { packetNumber++; }
+		else { packetNumber = 1; } // next packet inc., increasing the number
 
 	}
 	file.close();
 
-	while (1)
+	while (1) //closing the transmittion, sending EOT and waiting for ACK
 	{
 		character = EOT;
 		WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
