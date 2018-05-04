@@ -29,7 +29,7 @@ int Send(LPCTSTR selectedPort)
 	char character;
 	bool variant;
 	bool isTransmittion = false;
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 20; i++)
 	{
 		ReadFile(portHandle, &character, characterCount, &characterSize, NULL); //Waiting for transmittion start
 		if (character == 'C')//Got C character, CRC variant
@@ -138,12 +138,12 @@ int Send(LPCTSTR selectedPort)
 	}
 	file.close();
 
-	while (1) //closing the transmittion, sending EOT and waiting for ACK
+	character = ' ';
+	while (character != ACK) //closing the transmittion, sending EOT and waiting for ACK
 	{
 		character = EOT;
 		WriteFile(portHandle, &character, characterCount, &characterSize, NULL);
 		ReadFile(portHandle, &character, characterCount, &characterSize, NULL);
-		if (character == ACK) { break; }
 	}
 
 	CloseHandle(portHandle);

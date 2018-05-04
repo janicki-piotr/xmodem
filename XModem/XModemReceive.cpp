@@ -14,8 +14,6 @@ const char ACK = 0x06;
 const char EOT = 0x04;
 const char C = 0x43;
 
-
-
 int Receive(LPCTSTR selectedPort)
 {
 	int characterCount = 1; char character;
@@ -29,7 +27,7 @@ int Receive(LPCTSTR selectedPort)
 	cout << endl;
 
 	bool isTransmission = false;
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 20; i++)
 	{
 		character = C;
 		WriteFile(portHandle, &character, characterCount, &characterSize, NULL);// Sending C
@@ -51,8 +49,6 @@ int Receive(LPCTSTR selectedPort)
 	std::ofstream file;
 	file.open(fileName, ios::binary);
 	cout << "Receiving the file\n";
-
-	
 
 	while (1)
 	{
@@ -85,9 +81,9 @@ int Receive(LPCTSTR selectedPort)
 		}
 		else
 		{
-			USHORT tmpCRC = calculateCRC(dataBlock, 128);
+			int CRC = calculateCRC(dataBlock, 128);
 
-			if (calculateCharacterCRC(tmpCRC, 1) != CRCChecksum[0] || calculateCharacterCRC(tmpCRC, 2) != CRCChecksum[1]) // check CRC
+			if (calculateCharacterCRC(CRC, 1) != CRCChecksum[0] || calculateCharacterCRC(CRC, 2) != CRCChecksum[1]) // check CRC
 			{
 				cout << "Bad checksum\n";
 				WriteFile(portHandle, &NAK, characterCount, &characterSize, NULL);//if wrong, send NAK

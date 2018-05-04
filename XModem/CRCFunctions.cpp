@@ -16,25 +16,16 @@ HANDLE HandleConfig(LPCTSTR selectedPort)
 		controlSettings.Parity = NOPARITY;
 		controlSettings.StopBits = ONESTOPBIT;
 		controlSettings.ByteSize = 8;
-
 		controlSettings.fParity = TRUE;
 		controlSettings.fDtrControl = DTR_CONTROL_DISABLE;
 		controlSettings.fRtsControl = RTS_CONTROL_DISABLE;
-		controlSettings.fOutxCtsFlow = FALSE;
-		controlSettings.fOutxDsrFlow = FALSE;
-		controlSettings.fDsrSensitivity = FALSE;
-		controlSettings.fAbortOnError = FALSE;
-		controlSettings.fOutX = FALSE;
-		controlSettings.fInX = FALSE;
-		controlSettings.fErrorChar = FALSE;
-		controlSettings.fNull = FALSE;
 
 		COMMTIMEOUTS timeParameters;
-		timeParameters.ReadIntervalTimeout = 10000;
-		timeParameters.ReadTotalTimeoutMultiplier = 10000;
-		timeParameters.ReadTotalTimeoutConstant = 10000;
-		timeParameters.WriteTotalTimeoutMultiplier = 100;
-		timeParameters.WriteTotalTimeoutConstant = 100;
+		timeParameters.ReadIntervalTimeout = 5000;
+		timeParameters.ReadTotalTimeoutMultiplier = 0;
+		timeParameters.ReadTotalTimeoutConstant = 5000;
+		timeParameters.WriteTotalTimeoutMultiplier = 0;
+		timeParameters.WriteTotalTimeoutConstant = 5000;
 
 		COMSTAT commDeviceInfo; DWORD error;
 		SetCommState(portHandle, &controlSettings);
